@@ -12,6 +12,8 @@ def buildDirStruct(rootPath:str,optionFileName:str="options.py"):
                                                    optionFileName)
         if entry.name == optionFileName:
             dirstruct["options"] = entry.name
+        elif entry.name == (os.path.basename(rootPath) + ".md"):
+            dirstruct["page"] = entry.name
         else:
             entryList.append(entry.name)
     dirstruct["entries"] = entryList
