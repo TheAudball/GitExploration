@@ -1,13 +1,13 @@
 import DirectoryStructure as ds
 import MarkdownTools as md
+import sys
+import os
 
-RepoName = ''
 # 4 spaces per nesting level — renders as a nested list on GitHub wikis
 # more reliably than tabs (and stays under the indented-code-block threshold)
 INDENT = '    '
 
-def MakeSideBar(root:str,optionFileName:str="options.py"):
-    directory = ds.buildDirStruct(root,optionFileName)
+def MakeSideBar(directory:dict,optionFileName:str="options.py"):
     sidebar = ''
     for item in directory["entries"]:
         if isinstance(directory.get(item), dict):
@@ -57,3 +57,12 @@ def MakeSection(sectionDict:dict,indentLvl:int=0):
         else:
             section += f'{indent}{bullet} {md.GenerateLink(entry, RepoName)}\n'
     return section
+
+if __name__ == "__main__":
+    RepoName = sys.argv[2]
+    rootPath = sys.argv[1]
+    outPath = os.path.join(rootPath,"_Sidebar.md")
+    wiki = ds.buildDirStruct(rootPath)
+    sidebar = MakeSideBar(wiki)
+    with open(outPath,"w") as f:
+        print(sidebar, file=f)
