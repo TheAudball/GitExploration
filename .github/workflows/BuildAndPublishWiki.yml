@@ -1,0 +1,66 @@
+name: Build and Publish Wiki
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'wiki/**'
+      # When the compilers move into their own folder, add it here too so that
+      # editing a compiler also triggers a rebuild, e.g.:
+      #   - 'scripts/**'
+
+# Needed so the job can push the regenerated pages back to the repo.
+permissions:
+  contents: write
+
+env:
+  WIKI_DIR: wiki
+  # Folder holding the Compile*.py scripts (plus their helper modules).
+  # Currently the scripts live in the repo root, so this is ".".
+  # After moving them into a folder, change this to e.g. "scripts".
+  SCRIPTS_DIR: "."
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # Auto-discovers every Compile*.py in SCRIPTS_DIR and runs each with the
+      # shared contract: <wiki-root> <repo>. Drop in a new compiler — no YAML
+      # edit needed. Scripts run in alphabetical (glob) order; prefix names
+      # (10-, 20-) if a specific order ever matters. nullglob keeps the loop
+      # from running a literal "Compile*.py" when nothing matches.
+      - name: Run page compilers
+        run: |
+          shopt -s nullglob
+          for script in "$SCRIPTS_DIR"/Compile*.py; do
+            echo "::group::$script"
+            python "$script" "$WIKI_DIR" "$GITHUB_REPOSITORY"
+            echo "::endgroup::"
+          done
+
+      # Commit back anything the compilers regenerated. [skip ci] is safe here:
+      # the publish step below runs in this same job, so it does not rely on a
+      # re-trigger, and the tag prevents this commit from looping the workflow.
+      - name: Commit regenerated pages
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add "$WIKI_DIR"
+          if ! git diff --cached --quiet; then
+            git commit -m "Recompile wiki pages [skip ci]"
+            git push
+          fi
+
+      # Freshly compiled pages are already in the working tree, so they publish
+      # correctly in this single pass — no race, no stale sidebar.
+      - name: Publish wiki
+        uses: Andrew-Chen-Wang/github-wiki-action@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          path: ${{ env.WIKI_DIR }}
