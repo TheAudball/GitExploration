@@ -22,9 +22,12 @@ jobs:
           python-version: '3.12'
 
       # argv[1] = wiki root, argv[2] = repo whose wiki the links point to.
+      # github.repository is "owner/repo" of whatever repo this workflow lives
+      # in, so the sidebar links resolve against this repo's own wiki — no edit
+      # needed when copying this workflow into another wiki repo.
       # Run from the repo root so the sibling imports resolve.
       - name: Recompile sidebar
-        run: python CompileSidebar.py wiki TheAudball/WikiSandbox
+        run: python CompileSidebar.py wiki "$GITHUB_REPOSITORY"
 
       - name: Commit regenerated sidebar
         run: |
