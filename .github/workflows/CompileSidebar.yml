@@ -1,0 +1,39 @@
+name: Compile Sidebar
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'wiki/**'
+      - '!wiki/_Sidebar.md'   # don't re-trigger on our own sidebar commit
+
+# Needed so the workflow can push the regenerated _Sidebar.md back to the repo.
+permissions:
+  contents: write
+
+jobs:
+  compile-sidebar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # argv[1] = wiki root, argv[2] = repo whose wiki the links point to.
+      # Run from the repo root so the sibling imports resolve.
+      - name: Recompile sidebar
+        run: python CompileSidebar.py wiki TheAudball/WikiSandbox
+
+      - name: Commit regenerated sidebar
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet -- wiki/_Sidebar.md; then
+            echo "Sidebar unchanged, nothing to commit."
+          else
+            git add wiki/_Sidebar.md
+            git commit -m "Recompile wiki sidebar [skip ci]"
+            git push
+          fi
