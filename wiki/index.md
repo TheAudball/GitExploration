@@ -1,5 +1,5 @@
 ---
-# Empty Front Matter
+title: Testing
 ---
 
 A test page.
